@@ -5,7 +5,6 @@ using System;
 
 public class StoryInfo : ScriptableObject
 {
-
 	public int creationCount = 0;
 	public int currentAlpha = 0;
 	public List<StoryBase> characters = new List<StoryBase> ();

@@ -106,6 +106,24 @@ public class StoryGetters
 		return charDict;
 	}
 
+	public static  Dictionary<string,  StoryInfo.Conversation> GetConversationDict ()
+	{
+		Dictionary<string,  StoryInfo.Conversation> conDict = new Dictionary<string, StoryInfo.Conversation> ();
+		List<StoryInfo.StoryBase> list = new List<StoryInfo.StoryBase> ();
+		list.AddRange (GetStoryInfo ().characters);
+		list.AddRange (GetStoryInfo ().chapters);
+
+		for (int d = 0; d < list.Count; d++) {
+			List<StoryInfo.Conversation> conversations = list [d].conversations;
+			for (int c = 0; c < conversations.Count; c++) {
+				conDict.Add (conversations [c].GUID, conversations [c]);
+			}
+		}
+
+		return conDict;
+	}
+
+
 	public static  Dictionary<string,  StoryInfo.Page> GetPagesDictionary ()
 	{
 		List<StoryInfo.StoryBase> list = new List<StoryInfo.StoryBase> (GetStoryInfo ().characters);

@@ -441,8 +441,6 @@ public class StoryEditor : EditorWindow
 		
 			#endregion
 
-
-
 			GUILayout.EndHorizontal ();
 			if (page.isActive) {
 
@@ -450,21 +448,10 @@ public class StoryEditor : EditorWindow
 				//Is dynamic
 				DisplayButtonInfo (page.dynamicButtonInfo);
 
-				//page.name = EditorGUILayout.TextField ("Name: ", page.name);
-
-				//Texture2D is a serialized property....
-
-
-
-
-				//GUILayout.Button ("Output Text", editorSkin.GetStyle (styleButtonHeaderB));
 				page.speakerName = EditorGUILayout.TextField ("Speaker: ", page.speakerName);
 				//Show text box
 
-
-
 				GUILayout.BeginHorizontal (EditorStyles.helpBox);
-
 
 				GUILayout.BeginVertical ();
 
@@ -512,8 +499,6 @@ public class StoryEditor : EditorWindow
 
 				GUILayout.EndHorizontal ();
 
-
-
 				GUILayout.BeginVertical (EditorStyles.helpBox);
 
 				//Responses
@@ -541,7 +526,6 @@ public class StoryEditor : EditorWindow
 
 		GUILayout.EndVertical ();
 		GUILayout.EndHorizontal ();
-
 
 		if (GUI.changed) {
 			//Save
@@ -601,8 +585,6 @@ public class StoryEditor : EditorWindow
 
 		GUILayout.EndVertical ();
 		GUILayout.EndHorizontal ();
-
-
 
 	}
 

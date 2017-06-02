@@ -13,6 +13,9 @@ public class ActionEventDrawer : Editor
 {
 
 	private ReorderableList list;
+	public Rect currentRect;
+
+	public Vector2 rectPos;
 
 	private void OnEnable ()
 	{
@@ -34,14 +37,14 @@ public class ActionEventDrawer : Editor
 		list.drawElementCallback = 
 			(Rect rect, int index, bool isActive, bool isFocused) => {
 
+
+
 			float width = rect.width / 3;
 
 			var element = list.serializedProperty.GetArrayElementAtIndex (index);
 			rect.y += 2;
 		
 			float height = EditorGUIUtility.singleLineHeight * 3f;
-		
-
 
 			EditorGUI.PropertyField (
 				new Rect (rect.x, rect.y, width, EditorGUIUtility.singleLineHeight),
@@ -51,6 +54,9 @@ public class ActionEventDrawer : Editor
 			actionEvent.myHeight = height;
 
 			List<Rect> rectItemCol = new List<Rect> ();
+
+			currentRect = new Rect (rect.x, rect.y, width, EditorGUIUtility.singleLineHeight);
+
 
 			for (int i = 0; i < 10; i++) {
 				rectItemCol.Add (new Rect (rect.x, rect.y + (EditorGUIUtility.singleLineHeight * i), width, EditorGUIUtility.singleLineHeight));
@@ -167,7 +173,6 @@ public class ActionEventDrawer : Editor
 
 					}
 
-
 					string[] dialouges = StoryGetters.GetStoryBaseNames (storyInfo, actionEvent.dialouge.dialougeType);
 
 					actionEvent.dialouge.dialougeIndex = ValidateMaxLength (actionEvent.dialouge.dialougeIndex, dialouges.Length);
@@ -175,7 +180,6 @@ public class ActionEventDrawer : Editor
 					actionEvent.dialouge.dialougeIndex = EditorGUI.Popup (rectItemArrayCol [0], "", actionEvent.dialouge.dialougeIndex, dialouges);
 
 					StoryInfo.StoryBase dialouge = StoryGetters.GetChatTypeList (storyInfo, actionEvent.dialouge.dialougeType) [actionEvent.dialouge.dialougeIndex];
-
 
 					string[] conversations = StoryGetters.GetConversation (dialouge);
 
@@ -237,6 +241,16 @@ public class ActionEventDrawer : Editor
 
 
 
+					//Display Buttons
+					currentRect = rectItemArrayCol [1];
+
+
+
+					//GUI.Label (currentRect, "testText");
+
+
+					waitPosIndex = 6;
+
 				}
 
 
@@ -245,6 +259,8 @@ public class ActionEventDrawer : Editor
 				break;
 
 			}
+
+			actionEvent.myHeight = (waitPosIndex + 2) * EditorGUIUtility.singleLineHeight;
 
 			DrawGUIProperty (rectItemCol [waitPosIndex], element, "waitType", "");		
 			rectItemArrayCol [waitPosIndex].x += width;
@@ -323,6 +339,28 @@ public class ActionEventDrawer : Editor
 	{
 		SerializedProperty sProp = mainProp.FindPropertyRelative (propName);
 		EditorGUI.PropertyField (rect, sProp, new GUIContent (propLabel));
+	}
+
+	public void DrawNewLine (SerializedProperty mainProp, string propName, string propLabel)
+	{
+		currentRect.x = 0;
+		currentRect.y += EditorGUIUtility.singleLineHeight;
+		SerializedProperty sProp = mainProp.FindPropertyRelative (propName);
+		EditorGUI.PropertyField (currentRect, sProp, new GUIContent (propLabel));
+	}
+
+	public void DrawProp (SerializedProperty mainProp, string propName, string propLabel)
+	{
+		currentRect.x += currentRect.width;
+		SerializedProperty sProp = mainProp.FindPropertyRelative (propName);
+		EditorGUI.PropertyField (currentRect, sProp, new GUIContent (propLabel));
+	}
+
+	public void DrawLabelLine (string name)
+	{
+		currentRect.x = 0;
+		currentRect.y += EditorGUIUtility.singleLineHeight;
+		GUI.Label (currentRect, name);
 	}
 
 

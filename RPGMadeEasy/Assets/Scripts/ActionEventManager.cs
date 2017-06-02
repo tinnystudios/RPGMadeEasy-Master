@@ -123,7 +123,6 @@ public class ActionEventManager : MonoBehaviour
 		public int lastIndex = 0;
 		//Emoji
 
-
 		//Dialouge
 		[SerializeField]
 		public Dialouge dialouge;
@@ -132,6 +131,8 @@ public class ActionEventManager : MonoBehaviour
 		public Transform targetTo;
 
 		public float myHeight;
+
+		public bool hasButtons;
 
 	}
 
