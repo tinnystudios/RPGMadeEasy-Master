@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class ChatManager : MonoBehaviour
+public class ChatManager : EventBase
 {
 
 	public static ChatManager _instance;
@@ -17,6 +17,8 @@ public class ChatManager : MonoBehaviour
 	public StoryInfo storyInfo;
 	public Dictionary<string,  StoryInfo.StoryBase> charDict = new Dictionary<string, StoryInfo.StoryBase> ();
 	public Dictionary<string,  StoryInfo.Page> pageDict = new Dictionary<string, StoryInfo.Page> ();
+	public Dictionary<string,  StoryInfo.Conversation> conDict = new Dictionary<string, StoryInfo.Conversation> ();
+
 	public Chat chat;
 	public Coroutine coroutineConversation;
 	public Coroutine textCoroutine;
@@ -25,6 +27,9 @@ public class ChatManager : MonoBehaviour
 
 	void Awake ()
 	{
+
+		conDict = StoryGetters.GetConversationDict ();
+
 		//	charDict = StoryGetters.GetCharacterDictionary (storyInfo.characters);
 		charDict = StoryGetters.GetStoryElementDictionary (storyInfo);
 
@@ -41,6 +46,179 @@ public class ChatManager : MonoBehaviour
 		//Get chapters GUID
 		if (Input.GetKeyDown (KeyCode.S))
 			OpenConversation (storyInfo.chapters [0].GUID, 0, 0);
+	}
+
+
+	//Open conversation with emoji & buttons
+
+	public void StartDialouge (string conGUID, List<EasyEvent.PageInfo> pageEvents)
+	{
+	
+		//Check page event count;
+		StartCoroutine (_StartDialouge (conGUID, pageEvents));
+	}
+
+	IEnumerator _StartDialouge (string conGUID, List<EasyEvent.PageInfo> pageEvents)
+	{
+		isChatActive = true;
+		int pIndex = 0;
+
+
+		StoryInfo.Conversation conversation = conDict [conGUID];
+
+		while (pIndex < conversation.pages.Count) {
+			StoryInfo.Page page = conversation.pages [pIndex];
+			EasyEvent.PageInfo pageEvent = pageEvents [pIndex];
+
+			//Check for the type of 'action'
+
+			//if (myEmoji.playTiming == PlayTiming.onStart)
+			//yield return StartCoroutine (_PlayEmoji (myEmoji));
+
+			#region Events
+			PlayEvent (pageEvent.eventStartList);
+			#endregion
+
+			#region Reset values logic
+			displayChat.SetActive (true);	
+			textChat.text = "";
+			HideButtons ();
+			#endregion
+
+
+
+			#region ### Output Text Logic ### 
+
+			Dictionary<string,string> tagNameDict = StoryGetters.GetTagNames ();
+
+			string outputText = StoryGetters.GetStringAndAppendFromTag (tagNameDict, page.text);
+			string speakerText = StoryGetters.GetStringAndAppendFromTag (tagNameDict, page.speakerName);
+			textSpeaker.text = speakerText;
+
+			if (outputText.Contains ("#")) {
+				outputText = StoryGetters.GetStringAndAppendFromTag (tagNameDict, page.text);
+			}
+
+			textCoroutine = StartCoroutine (PrintText (outputText));
+			#endregion
+
+			#region ### Space to complete text ###
+			while (textChat.text != outputText) {
+
+				if (Input.GetKeyDown (KeyCode.Space))
+					break;
+
+				yield return null;
+			}
+
+
+			//Wait until the frame ends
+			yield return new WaitForEndOfFrame ();
+
+			StopCoroutine (textCoroutine);
+			textChat.text = outputText;
+
+			#endregion
+
+			#region ### Closing Dialouge Logic ###
+			bool canSkip = true;
+
+			//If there are buttons, you cannot skip
+			if (page.buttonInfos.Count > 0) {
+				canSkip = false;
+			}
+			#endregion
+
+			#region ### Space to close dialouge ###
+			while (true) {
+				if (Input.GetKeyDown (KeyCode.Space) && canSkip) {
+					break;
+				}
+				yield return null;
+			}
+			#endregion
+
+			#region ### Emoji ###
+
+			//Check For events
+			PlayEvent (pageEvent.eventEndList);
+
+
+
+
+
+
+			/*
+			//Maybe I should have a 'boolean' for it.
+			if (pageEvents [pIndex].emoji.sprite != null) {
+				//Spawn emoji
+				EasyEvent.Emoji myEmoji = pageEvents [pIndex].emoji;
+				GameObject emojiGO = Instantiate (myEmoji.instantiateTarget, myEmoji.target.transform.position + myEmoji.offset, Quaternion.identity) as GameObject;
+				emojiGO.GetComponent<EmojiInfo> ().SetSprite (myEmoji.sprite);
+			}
+			*/
+
+			#endregion
+			pIndex++;
+			yield return null;
+		}
+
+		CloseConversation ();
+		isChatActive = false;
+	}
+
+	public void PlayEvent (List<EasyEvent.PageEvent> pageEvents)
+	{
+		StartCoroutine (_PlayEvent (pageEvents));
+	}
+
+	IEnumerator _PlayEvent (List<EasyEvent.PageEvent> pageEvents)
+	{
+		for (int i = 0; i < pageEvents.Count; i++) {
+
+			EasyEvent.PageEvent myEvent = pageEvents [i];
+
+			switch (pageEvents [i].pageEventType) {
+
+			case PageEventType.move:
+
+				Vector3 endPos = myEvent.moveMethod.target.position + myEvent.moveMethod.moveDist;
+
+				if (myEvent.waitType == WaitType.waitForEvent)
+					yield return StartCoroutine (_Move (myEvent.moveMethod.target, endPos, myEvent.moveMethod.curve));
+				else
+					StartCoroutine (_Move (myEvent.moveMethod.target, endPos, myEvent.moveMethod.curve));
+
+				break;
+
+			case PageEventType.emoji:
+				StartCoroutine (_PlayEmoji (pageEvents [i].emoji));
+				break;
+
+			}
+
+			yield return new WaitForSeconds (pageEvents [i].waitTime);
+
+		}
+	}
+
+	public void PlayEmoji (EasyEvent.Emoji myEmoji)
+	{
+		//if (myEmoji.playTiming != PlayTiming.none) {
+		GameObject emojiGO = Instantiate (myEmoji.instantiateTarget, myEmoji.target.transform.position + myEmoji.offset, Quaternion.identity) as GameObject;
+		emojiGO.GetComponent<EmojiInfo> ().SetSprite (myEmoji.sprite);
+		//}
+	}
+
+	IEnumerator _PlayEmoji (EasyEvent.Emoji myEmoji)
+	{
+
+		//if (myEmoji.playTiming != PlayTiming.none) {
+		GameObject emojiGO = Instantiate (myEmoji.instantiateTarget, myEmoji.target.transform.position + myEmoji.offset, Quaternion.identity) as GameObject;
+		emojiGO.GetComponent<EmojiInfo> ().SetSprite (myEmoji.sprite);
+		yield return new WaitForSeconds (myEmoji.waitTime);
+		//}
+
 	}
 
 	public void OpenConversation (string charGUID, int cIndex, int pIndex)
@@ -70,30 +248,12 @@ public class ChatManager : MonoBehaviour
 
 
 				Dictionary<string,string> tagNameDict = StoryGetters.GetTagNames ();
-
-
 				string outputText = StoryGetters.GetStringAndAppendFromTag (tagNameDict, page.text);
 				string speakerText = StoryGetters.GetStringAndAppendFromTag (tagNameDict, page.speakerName);
 				textSpeaker.text = speakerText;
 				if (outputText.Contains ("#")) {
 					outputText = StoryGetters.GetStringAndAppendFromTag (tagNameDict, page.text);
 				}
-
-				/*
-				string[] outputArray = outputText.Split ('#');
-				string tagName = outputArray [1];
-
-				if (tagNameDict.ContainsKey (tagName)) {
-					print (tagNameDict [tagName]);
-
-					//Remove the end
-					outputText = "";
-					outputText += outputArray [0];
-					outputText += tagNameDict [tagName];
-					outputText += outputArray [2];
-
-				}
-				*/
 
 				textCoroutine = StartCoroutine (PrintText (outputText));
 

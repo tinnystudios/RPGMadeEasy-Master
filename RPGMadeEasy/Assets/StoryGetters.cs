@@ -5,6 +5,18 @@ using UnityEngine;
 public class StoryGetters
 {
 
+	//Send over stuff to serialized
+	public static string[] GetEventNames (List<EasyEvent.EasyEventInfo> list)
+	{
+		string[] s = new string[list.Count];
+
+		for (int i = 0; i < s.Length; i++) {
+			s [i] = "" + i + ": " + list [i].eventType.ToString ();
+		}
+
+		return s;
+	}
+
 	public static List<StoryInfo.StoryBase> GetChatTypeList (StoryInfo storyInfo, StoryElementType elementType)
 	{
 		if (elementType == StoryElementType.character)
@@ -86,6 +98,17 @@ public class StoryGetters
 		return strings.ToArray ();
 	}
 
+	public static string[] GetActorTags (List<SceneInfo.ActorTags> list)
+	{
+		List<string> strings = new List<string> ();
+
+		for (int i = 0; i < list.Count; i++) {
+			strings.Add (i.ToString () + ":" + list [i].name);
+		}
+
+		return strings.ToArray ();
+	}
+
 	public static StoryInfo GetStoryInfo ()
 	{
 		return Resources.Load ("Stories/Story") as StoryInfo;	
@@ -121,6 +144,24 @@ public class StoryGetters
 		}
 
 		return conDict;
+	}
+
+	public static void GenerateAllIndexes ()
+	{
+		GenerateDialougeIndexes (GetStoryInfo ().chapters);
+		GenerateDialougeIndexes (GetStoryInfo ().characters);
+	}
+
+	public static void GenerateDialougeIndexes (List<StoryInfo.StoryBase> list)
+	{
+		for (int d = 0; d < list.Count; d++) {
+			List<StoryInfo.Conversation> conversations = list [d].conversations;
+			for (int c = 0; c < conversations.Count; c++) {
+				conversations [c].linkInfo.dialougeGUID = list [d].GUID;
+				conversations [c].linkInfo.conversationIndex = c;
+				conversations [c].linkInfo.dialougeIndex = d;
+			}
+		}
 	}
 
 
@@ -260,5 +301,6 @@ public class StoryGetters
 		return outputText;
 
 	}
+
 
 }

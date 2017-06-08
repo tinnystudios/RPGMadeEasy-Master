@@ -5,13 +5,17 @@ using System;
 
 public class StoryInfo : ScriptableObject
 {
+	//GUID Generator
 	public int creationCount = 0;
 	public int currentAlpha = 0;
+
 	public List<StoryBase> characters = new List<StoryBase> ();
 	public List<StoryBase> chapters = new List<StoryBase> ();
+
 	public bool isConversation;
 	public bool isInfo;
 	public bool isStoryElement = true;
+
 	[SerializeField]
 	public Dictionary <string,StoryBase> storyDictionary;
 	//Helps find a character
@@ -23,7 +27,6 @@ public class StoryInfo : ScriptableObject
 		public Texture2D image;
 		public string name;
 		public int index = 0;
-
 	}
 
 	[System.Serializable]
@@ -38,6 +41,15 @@ public class StoryInfo : ScriptableObject
 	{
 		public bool isDisplayPages;
 		public List<Page> pages = new List<Page> ();
+		public LinkInfo linkInfo = new LinkInfo ();
+	}
+
+	[System.Serializable]
+	public class LinkInfo
+	{
+		public string dialougeGUID = "";
+		public int dialougeIndex;
+		public int conversationIndex;
 	}
 
 	[System.Serializable]
@@ -103,8 +115,6 @@ public class StoryInfo : ScriptableObject
 		public int currentIndex = 0;
 		public PlayMethod playMethod;
 	}
-
-
 
 }
 

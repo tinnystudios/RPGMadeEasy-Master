@@ -20,6 +20,7 @@ public class StoryEditor : EditorWindow
 	public string styleButtonHeaderB = "buttonHeaderB";
 	public float smallButtonWidth = 0.5F;
 	public float xSmallButtonWidth = 0.25F;
+	public float fixedSmallButtonWidth = 20;
 	public int storyElementIndex = 0;
 
 	public StoryInfo.StoryBase selectedAsset;
@@ -41,6 +42,8 @@ public class StoryEditor : EditorWindow
 
 	public Dictionary<string,  StoryInfo.StoryBase> charDict = new Dictionary<string, StoryInfo.StoryBase> ();
 	public Dictionary<string,  StoryInfo.Page> pageDict = new Dictionary<string, StoryInfo.Page> ();
+	public Dictionary<string,  StoryInfo.Conversation> conDict = new Dictionary<string, StoryInfo.Conversation> ();
+
 	public Dictionary<string,  string> tagNameDict = new Dictionary<string, string> ();
 
 	public SerializedObject storyObject;
@@ -81,7 +84,8 @@ public class StoryEditor : EditorWindow
 	//Use boolean from 'storyinfo' not the character ?
 	void OnGUI ()
 	{
-		
+	
+
 		if (editorColorInfo != null)
 			editorColorInfo = AssetDatabase.LoadAssetAtPath (pathToStory + "EditorColors.asset", typeof(EditorColors)) as EditorColors;
 
@@ -138,6 +142,8 @@ public class StoryEditor : EditorWindow
 
 		if (storyInfo.isStoryElement)
 			DisplayStoryElement ();
+
+
 
 		#region ### Check for nulls ###
 
@@ -340,8 +346,53 @@ public class StoryEditor : EditorWindow
 
 		for (int i = 0; i < conversations.Count; i++) {
 
+			StoryInfo.Conversation conversation = conversations [i];
+
+			GUILayout.BeginHorizontal ();
+			//Display Button Title
+			float bWidth = Screen.width * 0.7F;
+
 			if (GUILayout.Button (i.ToString () + ": " + conversations [i].name, editorSkin.GetStyle (styleButtonHeader)))
 				conversations [i].isActive = !conversations [i].isActive;
+
+
+			#region Moving
+			if (GUILayout.Button ("^", GUILayout.Width (fixedSmallButtonWidth))) {
+
+				StoryInfo.Conversation newPage = selectedAsset.conversations [i - 1];
+				selectedAsset.conversations [i - 1] = conversation;
+				selectedAsset.conversations [i] = newPage;
+
+				DictionarySetup ();
+
+				i = 0;
+
+				return;
+			}
+
+			if (GUILayout.Button ("v", GUILayout.Width (fixedSmallButtonWidth))) {
+
+				StoryInfo.Conversation newPage = selectedAsset.conversations [i + 1];
+				selectedAsset.conversations [i + 1] = conversation;
+				selectedAsset.conversations [i] = newPage;
+
+				DictionarySetup ();
+
+				i = 0;
+
+				return;
+			}
+
+		
+
+			#endregion
+
+			GUILayout.EndHorizontal ();
+
+
+
+
+
 
 			GUILayout.BeginHorizontal ();
 			GUILayout.Space (padLeft);
@@ -408,12 +459,15 @@ public class StoryEditor : EditorWindow
 
 			float pageButtonWidth = Screen.width - (xSmallButtonWidth * 2) - (padLeft * 4.8F);
 
+			float bWidth = Screen.width * 0.7F;
+
+
 			GUILayout.BeginHorizontal ();
-			if (GUILayout.Button (i.ToString () + ": " + page.name, editorSkin.GetStyle (styleButtonHeader), GUILayout.Width (pageButtonWidth)))
+			if (GUILayout.Button (i.ToString () + ": " + page.name, editorSkin.GetStyle (styleButtonHeader)))
 				page.isActive = !page.isActive;
 
-			#region b
-			if (GUILayout.Button ("^", GUILayout.Width (xSmallButtonWidth))) {
+			#region Moving
+			if (GUILayout.Button ("^", GUILayout.Width (fixedSmallButtonWidth))) {
 
 				StoryInfo.Page newPage = selectedAsset.conversations [convoIndex].pages [i - 1];
 				selectedAsset.conversations [convoIndex].pages [i - 1] = page;
@@ -426,7 +480,7 @@ public class StoryEditor : EditorWindow
 				return;
 			}
 
-			if (GUILayout.Button ("v", GUILayout.Width (xSmallButtonWidth))) {
+			if (GUILayout.Button ("v", GUILayout.Width (fixedSmallButtonWidth))) {
 
 				StoryInfo.Page newPage = selectedAsset.conversations [convoIndex].pages [i + 1];
 				selectedAsset.conversations [convoIndex].pages [i + 1] = page;
@@ -493,7 +547,7 @@ public class StoryEditor : EditorWindow
 
 				GUILayout.EndVertical ();
 
-				page.text = GUILayout.TextArea (page.text, GUILayout.MinHeight (90), GUILayout.Width (Screen.width - 180));
+				page.text = GUILayout.TextArea (page.text, GUILayout.MinHeight (90), GUILayout.Width (Screen.width - 250));
 
 				GUILayout.FlexibleSpace ();
 
@@ -573,6 +627,8 @@ public class StoryEditor : EditorWindow
 			GUILayout.EndHorizontal ();
 
 		}
+
+
 
 		GUILayout.BeginHorizontal ();
 		GUILayout.FlexibleSpace ();
@@ -811,12 +867,12 @@ public class StoryEditor : EditorWindow
 		//Generate a get lists later.
 		if (storyElementType == StoryElementType.character) {
 			if (storyElementIndex > storyInfo.characters.Count - 1)
-				storyElementIndex = storyInfo.characters.Count;
+				storyElementIndex = storyInfo.characters.Count - 1;
 		}
 
 		if (storyElementType == StoryElementType.chapter) {
 			if (storyElementIndex > storyInfo.chapters.Count - 1)
-				storyElementIndex = storyInfo.chapters.Count;
+				storyElementIndex = storyInfo.chapters.Count - 1;
 		}
 
 		selectedAsset = GetChatTypeList (storyElementType) [storyElementIndex];
@@ -837,10 +893,13 @@ public class StoryEditor : EditorWindow
 
 		charDict.Clear ();
 		pageDict.Clear ();
-		if (storyInfo.characters == null)
-			Debug.Log ("null");
+		conDict.Clear ();
+
 		GenerateDictionaryFromList (storyInfo.characters, StoryElementType.character);
 		GenerateDictionaryFromList (storyInfo.chapters, StoryElementType.chapter);
+
+		conDict = StoryGetters.GetConversationDict ();
+		StoryGetters.GenerateAllIndexes ();
 
 	}
 
@@ -852,25 +911,16 @@ public class StoryEditor : EditorWindow
 			storyBase.currentIndex = charCount;
 			foreach (StoryInfo.Conversation conversation in storyBase.conversations) {
 				int pageCount = 0;
-				conversation.currentIndex = convoCount;
-				conversation.parentIndex = charCount;
+
 				foreach (StoryInfo.Page page in conversation.pages) {
-					page.currentIndex = pageCount;
-					page.parentIndex = convoCount;
-
-
-
-
-
-
+					
 					page.pageLinkInfo.elementIndex = charCount;
-
 					page.pageLinkInfo.storyElementType = sType;
-
 					page.pageLinkInfo.conversationIndex = convoCount;
 					page.pageLinkInfo.pageIndex = pageCount;
 					page.pageLinkInfo.charGUID = storyBase.GUID;
 					page.pageLinkInfo.pageGUID = page.GUID;
+
 					pageDict.Add (page.GUID, page);
 					pageCount++;
 				}
