@@ -8,6 +8,7 @@ using UnityEngine.EventSystems;
 public class ResponseButton : MonoBehaviour
 {
 	public Text text;
+	public UnityEvent myEvent;
 	public ChatManager chatManager;
 	public StoryInfo.ButtonInfo buttonInfo;
 
@@ -19,7 +20,9 @@ public class ResponseButton : MonoBehaviour
 
 	public void ButtonPressed ()
 	{
+		myEvent.Invoke ();
 
+		return;
 		switch (buttonInfo.buttonType) {
 
 		case ButtonType.none:
@@ -43,7 +46,6 @@ public class ResponseButton : MonoBehaviour
 
 		}
 
-		EventSystem.current.SetSelectedGameObject (null);
 
 	}
 }

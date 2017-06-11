@@ -85,8 +85,6 @@ public class ChatManager : EventBase
 			HideButtons ();
 			#endregion
 
-
-
 			#region ### Output Text Logic ### 
 
 			Dictionary<string,string> tagNameDict = StoryGetters.GetTagNames ();
@@ -123,10 +121,29 @@ public class ChatManager : EventBase
 			#region ### Closing Dialouge Logic ###
 			bool canSkip = true;
 
+			//Buttons
+			#region Buttons
+
+			//Has buttons
+			if (pageEvent.easyButtons.Count > 0) {
+				for (int i = 0; i < pageEvent.easyButtons.Count; i++) {
+					buttons [i].gameObject.SetActive (true);
+					buttons [i].text.text = pageEvent.easyButtons [i].text;
+					buttons [i].myEvent = pageEvent.easyButtons [i].anEvent;
+				}
+
+			}
+
+			#endregion
+
+			/* (this uses the WindowEditor ones)
 			//If there are buttons, you cannot skip
 			if (page.buttonInfos.Count > 0) {
 				canSkip = false;
 			}
+			*/
+
+
 			#endregion
 
 			#region ### Space to close dialouge ###
@@ -137,6 +154,9 @@ public class ChatManager : EventBase
 				yield return null;
 			}
 			#endregion
+
+
+
 
 			#region ### Emoji ###
 
@@ -159,6 +179,10 @@ public class ChatManager : EventBase
 			*/
 
 			#endregion
+
+
+
+
 			pIndex++;
 			yield return null;
 		}

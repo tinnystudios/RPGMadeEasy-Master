@@ -8,8 +8,22 @@ public class EasyEvent : EventBase
 
 	public List<EasyEventInfo> events = new List<EasyEventInfo> ();
 	public GameObject emojiPrefab;
+	public TriggerType triggerType;
+
 
 	void Start ()
+	{
+		if (triggerType == TriggerType.onAwake)
+			StartCoroutine (_RunEvents ());
+	}
+
+	public void EndEvent ()
+	{
+		StopAllCoroutines ();
+		gameObject.SetActive (false);
+	}
+
+	public void StartEvent ()
 	{
 		StartCoroutine (_RunEvents ());
 	}
@@ -20,21 +34,26 @@ public class EasyEvent : EventBase
 	{
 		for (int i = 0; i < events.Count; i++) {
 			EasyEventInfo myEvent = events [i];
+			MoveMethod moveMethod = myEvent.moveMethod;
+			DialougeMethod dialougeMethod = myEvent.dialougeMethod;
+			AnimationMethod animationMethod = myEvent.animationMethod;
+			InstantiateMethod instantiateMethod = myEvent.instantiateMethod;
+			EasyEventMethod easyEventMethod = myEvent.easyEventMethod;
 
 			switch (myEvent.eventType) {
 
 			case EasyEventType.setPos:
 
 				//Instant
-				if (myEvent.moveType == MoveType.target) {
-					if (myEvent.target != null && myEvent.targetTo != null)
-						myEvent.target.position = myEvent.targetTo.position;
+				if (moveMethod.moveType == MoveType.target) {
+					if (moveMethod.target != null && moveMethod.targetTo != null)
+						moveMethod.target.position = moveMethod.targetTo.position;
 				}
 
-				if (myEvent.moveType == MoveType.vector3) {
-					if (myEvent.target != null)
-						myEvent.target.transform.position = myEvent.moveDist;
-						
+				if (moveMethod.moveType == MoveType.vector3) {
+					if (moveMethod.target != null)
+						moveMethod.target.transform.position = moveMethod.moveDist;
+
 				}
 
 				//Lerp
@@ -43,12 +62,12 @@ public class EasyEvent : EventBase
 
 			case EasyEventType.move:
 
-				Vector3 endPos = myEvent.moveMethod.target.position + myEvent.moveMethod.moveDist;
+				Vector3 endPos = moveMethod.target.position + moveMethod.moveDist;
 
 				if (myEvent.waitType == WaitType.waitForEvent)
-					yield return StartCoroutine (_Move (myEvent.moveMethod.target, endPos, myEvent.moveMethod.curve));
+					yield return StartCoroutine (_Move (moveMethod.target, endPos, moveMethod.curve));
 				else
-					StartCoroutine (_Move (myEvent.moveMethod.target, endPos, myEvent.moveMethod.curve));
+					StartCoroutine (_Move (moveMethod.target, endPos, moveMethod.curve));
 
 
 				break;
@@ -63,11 +82,11 @@ public class EasyEvent : EventBase
 				//Make sure there is a global class!
 				Dictionary<string,  StoryInfo.Conversation> conDict = StoryGetters.GetConversationDict ();
 				//null check
-				StoryInfo.Conversation conversation = conDict [myEvent.conversationGUID];
+				StoryInfo.Conversation conversation = conDict [dialougeMethod.conversationGUID];
 				//ChatManager.singletonInstance.OpenConversation (conversation.linkInfo.dialougeGUID, conversation.linkInfo.conversationIndex, 0);
 
 
-				ChatManager.singletonInstance.StartDialouge (myEvent.conversationGUID, myEvent.pageList);
+				ChatManager.singletonInstance.StartDialouge (dialougeMethod.conversationGUID, myEvent.pageList);
 
 				while (ChatManager.singletonInstance.isChatActive) {
 					yield return null;
@@ -78,13 +97,13 @@ public class EasyEvent : EventBase
 				break;
 
 			case EasyEventType.instantiate:
-				Instantiate (myEvent.instantiateTarget, myEvent.spawnTarget.position + myEvent.offset, Quaternion.identity);
+				Instantiate (instantiateMethod.instanTarget, instantiateMethod.spawnTarget.position + instantiateMethod.offset, Quaternion.identity);
 				break;
 
 			case EasyEventType.emoji:
 				print ("emoji");
-				GameObject emojiGO = Instantiate (myEvent.instantiateTarget, myEvent.spawnTarget.position + myEvent.offset, Quaternion.identity) as GameObject;
-				emojiGO.GetComponent<EmojiInfo> ().SetSprite (myEvent.sprite);
+				GameObject emojiGO = Instantiate (instantiateMethod.emojiTarget, instantiateMethod.spawnTarget.position + instantiateMethod.offset, Quaternion.identity) as GameObject;
+				emojiGO.GetComponent<EmojiInfo> ().SetSprite (instantiateMethod.sprite);
 				break;
 
 			case EasyEventType.unityEvent:
@@ -95,23 +114,23 @@ public class EasyEvent : EventBase
 				//myEvent.animator.SetBool
 
 
-				if (myEvent.animParamType == AnimParamType.setInt) {
-					myEvent.animator.SetInteger (myEvent.paramName, myEvent.intField);
+				if (animationMethod.animParamType == AnimParamType.setInt) {
+					animationMethod.animator.SetInteger (animationMethod.paramName, animationMethod.intField);
 				}
 
-				if (myEvent.animParamType == AnimParamType.setFloat) {
-					myEvent.animator.SetFloat (myEvent.paramName, myEvent.floatField);
+				if (animationMethod.animParamType == AnimParamType.setFloat) {
+					animationMethod.animator.SetFloat (animationMethod.paramName, animationMethod.floatField);
 				}
 
-				if (myEvent.animParamType == AnimParamType.setBool) {
-					myEvent.animator.SetBool (myEvent.paramName, myEvent.boolField);
+				if (animationMethod.animParamType == AnimParamType.setBool) {
+					animationMethod.animator.SetBool (animationMethod.paramName, animationMethod.boolField);
 				}
 
-				if (myEvent.animParamType == AnimParamType.setTrigger) {
-					myEvent.animator.SetTrigger (myEvent.paramName);
+				if (animationMethod.animParamType == AnimParamType.setTrigger) {
+					animationMethod.animator.SetTrigger (animationMethod.paramName);
 				}
 
-				myEvent.animator.speed = myEvent.playSpeed;
+				animationMethod.animator.speed = animationMethod.playSpeed;
 
 				break;
 
@@ -132,6 +151,16 @@ public class EasyEvent : EventBase
 
 				break;
 
+			case EasyEventType.easyEvent:
+				if (easyEventMethod.visibility == VisibilityType.on) {
+					StartEvent ();
+				}
+				if (easyEventMethod.visibility == VisibilityType.off) {
+					EndEvent ();
+				}
+
+				break;
+
 			}
 
 			//If waittime exist, just wait.
@@ -148,6 +177,39 @@ public class EasyEvent : EventBase
 
 	#region Event Info Class
 
+
+
+	[System.Serializable]
+	public class EasyEventInfo
+	{
+		public bool isVisible;
+		public EasyEventType eventType;
+
+		//Wait
+		public WaitType waitType;
+		public float waitTime = 0;
+
+		public InstantiateMethod instantiateMethod;
+		public MoveMethod moveMethod;
+		public LoopMethod loopMethod;
+		public AnimationMethod animationMethod;
+		public DialougeMethod dialougeMethod;
+		public EasyEventMethod easyEventMethod;
+		//Debug Log
+		public string outputText = "Default output text";
+		//GUI
+		public float elementHeight;
+		public UnityEvent unityEvent;
+
+		public List<Emoji> emojiList = new List<Emoji> ();
+
+		//Have a page list here.
+		public bool showPageInfo = false;
+		public int pageIndex = 0;
+		public List<PageInfo> pageList = new List<PageInfo> ();
+	}
+
+
 	[System.Serializable]
 	public class MoveMethod
 	{
@@ -160,37 +222,23 @@ public class EasyEvent : EventBase
 		public ActorRefType actorRefType;
 		public int actorIndex = 0;
 		public Vector3 offset = new Vector3 (0, 1.5F, 0);
+		public VisibilityType visibilityType;
 	}
 
 	[System.Serializable]
-	public class EasyEventInfo
+	public class InstantiateMethod
 	{
-		public bool isVisible;
-		public EasyEventType eventType;
-
-		//Wait
-		public WaitType waitType;
-		public float waitTime = 0;
-
-		public GameObject instantiateTarget;
-
-		public MoveMethod moveMethod;
-		public LoopMethod loopMethod;
-
-		//Moving:
-		public Transform target;
-		public Transform targetTo;
-		public AnimationCurve curve;
-		public Vector3 moveDist;
-		public Vector3 rotDist;
-		public MoveType moveType;
-		public ActorRefType actorRefType;
-		public int actorIndex = 0;
+		public GameObject instanTarget;
+		public GameObject emojiTarget;
 		public Vector3 offset = new Vector3 (0, 1.5F, 0);
+		public Sprite sprite;
+		public Transform spawnTarget;
 
-		//Set Visiblity
-		public VisibilityType visiblityType;
+	}
 
+	[System.Serializable]
+	public class DialougeMethod
+	{
 		//Dialouge
 		public StoryElementType dialougeType;
 		public int dialougeIndex = 0;
@@ -198,22 +246,15 @@ public class EasyEvent : EventBase
 		public string conversationGUID = "";
 		public StoryInfo.Conversation selConversation;
 		public bool hasButtons;
-		public List<EasyButtons> easyButtons;
-		public int pageIndex = 0;
 
 		//Debug Log
 		public string outputText = "Default output text";
 
-		//GUI
-		public float elementHeight;
+	}
 
-		//Emoji
-		public Sprite sprite;
-		public Transform spawnTarget;
-
-		//UnityEvent
-		public UnityEvent unityEvent;
-
+	[System.Serializable]
+	public class AnimationMethod
+	{
 		//Animation
 		public Animator animator;
 		public string paramName = "DefaultName";
@@ -225,11 +266,6 @@ public class EasyEvent : EventBase
 		public AnimPlayMode animPlayMode = AnimPlayMode.play;
 		public float playSpeed = 1;
 
-		public List<Emoji> emojiList = new List<Emoji> ();
-		public List<PageInfo> pageList = new List<PageInfo> ();
-		public bool showPageInfo = false;
-
-		public float yPos;
 	}
 
 	[System.Serializable]
@@ -243,6 +279,13 @@ public class EasyEvent : EventBase
 	}
 
 	[System.Serializable]
+	public class EasyEventMethod
+	{
+		public EasyEvent easyEvent;
+		public VisibilityType visibility;
+	}
+
+	[System.Serializable]
 	public class PageInfo
 	{
 		public bool showPage = false;
@@ -252,6 +295,17 @@ public class EasyEvent : EventBase
 		public bool showStart = false;
 		public List<PageEvent> eventEndList = new List<PageEvent> ();
 		public List<PageEvent> eventStartList = new List<PageEvent> ();
+
+		public List<EasyButtons> easyButtons = new List<EasyButtons> ();
+
+	}
+
+	[System.Serializable]
+	public class EasyButtons
+	{
+		public string text = "default response";
+		public UnityEvent anEvent;
+		public EasyEventType eventType;
 	}
 
 	[System.Serializable]
@@ -283,12 +337,7 @@ public class EasyEvent : EventBase
 		public PlayTiming playTiming;
 	}
 
-	[System.Serializable]
-	public class EasyButtons
-	{
-		public string text = "default";
-		public UnityEvent anEvent;
-	}
+
 
 	#endregion
 
@@ -331,6 +380,7 @@ public enum EasyEventType
 	animation,
 	log,
 	loop,
+	easyEvent
 }
 
 public enum VisibilityType
@@ -372,4 +422,12 @@ public enum PlayTiming
 {
 	onStart,
 	onEnd
+}
+
+public enum TriggerType
+{
+	none,
+	onAwake,
+	onTrigger,
+	onCollision
 }
