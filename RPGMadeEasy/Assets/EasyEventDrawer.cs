@@ -147,10 +147,41 @@ public class EasyEventDrawer : Editor
 
 	}
 
+	public void DrawJustDialouge (EasyEvent.DialougeMethod dialougeInfo)
+	{
+		StoryInfo storyInfo = StoryGetters.GetStoryInfo ();
+		StoryGetters.GenerateAllIndexes ();
+
+		Dictionary<string,  StoryInfo.Conversation> conDict = StoryGetters.GetConversationDict ();
+
+		//If condict contains GUID do stuff
+		if (conDict.ContainsKey (dialougeInfo.conversationGUID)) {
+			StoryInfo.Conversation con = conDict [dialougeInfo.conversationGUID];
+			dialougeInfo.dialougeIndex = con.linkInfo.dialougeIndex;
+			dialougeInfo.conversationIndex = con.linkInfo.conversationIndex;
+		} else {
+			//Reset values or Pick the first one from the list, make sure to know the type as well! 
+		}
+
+		string[] dialouges = StoryGetters.GetStoryBaseNames (storyInfo, dialougeInfo.dialougeType);
+		dialougeInfo.dialougeIndex = ValidateMaxLength (dialougeInfo.dialougeIndex, dialouges.Length);
+		dialougeInfo.dialougeIndex = EditorGUI.Popup (curRect, "", dialougeInfo.dialougeIndex, dialouges);
+
+		NewRow ();
+
+		StoryInfo.StoryBase dialouge = StoryGetters.GetChatTypeList (storyInfo, dialougeInfo.dialougeType) [dialougeInfo.dialougeIndex];
+
+		string[] conversations = StoryGetters.GetConversation (dialouge);
+
+		dialougeInfo.conversationIndex = ValidateMaxLength (dialougeInfo.conversationIndex, conversations.Length);
+		dialougeInfo.conversationIndex = EditorGUI.Popup (curRect, "", dialougeInfo.conversationIndex, conversations);
+
+		StoryInfo.Conversation conversation = dialouge.conversations [dialougeInfo.conversationIndex];
+		dialougeInfo.conversationGUID = conversation.GUID; //Set GUID
+	}
+
 	public void DrawDialougeMethod (SerializedProperty element, SerializedProperty dialougeProp, EasyEvent.EasyEventInfo eventInfo, EasyEvent.DialougeMethod dialougeInfo, Rect rect)
 	{
-
-		#region Dialouge 
 
 		StoryInfo storyInfo = StoryGetters.GetStoryInfo ();
 		StoryGetters.GenerateAllIndexes ();
@@ -159,6 +190,8 @@ public class EasyEventDrawer : Editor
 		DrawGUIProperty (dialougeProp, "dialougeType", "", 1);
 
 		if (dialougeInfo.dialougeType != StoryElementType.custom) {
+
+			#region Dialouge 
 
 			Dictionary<string,  StoryInfo.Conversation> conDict = StoryGetters.GetConversationDict ();
 
@@ -204,10 +237,11 @@ public class EasyEventDrawer : Editor
 
 			}
 
-
+			#endregion
 
 			#region ### Page ###
 		
+			#region info
 			int diff = eventInfo.pageList.Count - conversation.pages.Count;
 			for (int i = 0; i < diff; i++) {
 				eventInfo.pageList.RemoveAt (0);
@@ -269,11 +303,15 @@ public class EasyEventDrawer : Editor
 
 			DrawEvents ("eventStartList", pageInfo.eventStartList, eventRect, eventInfo, conversation, rect, element);
 			DrawEvents ("eventEndList", pageInfo.eventEndList, eventRect, eventInfo, conversation, rect, element);
+			DrawEvents ("eventButtonList", pageInfo.eventButtonList, eventRect, eventInfo, conversation, rect, element);
+
+
+			return;
 
 			eventRect.y = curRect.y;
 			EditorGUI.DrawRect (eventRect, mainColor);
 			//eventInfo.pageList [eventInfo.pageIndex].hasButtons = EditorGUI.Foldout (eventRect, eventInfo.pageList [eventInfo.pageIndex].hasButtons, "Page Buttons", true);
-
+			#endregion
 
 			#region buttons
 
@@ -282,70 +320,56 @@ public class EasyEventDrawer : Editor
 			SerializedProperty buttonsProp = pageProp.FindPropertyRelative ("easyButtons");
 
 			EditorGUI.PropertyField (eventRect, buttonsProp, false);
+
 			NewCol ();
 
-
+			curRect.width = width;
+			//When a button is pressed, it should turn off CHAT!
 			if (buttonsProp.isExpanded) {
 
 				for (int i = 0; i < buttonsProp.arraySize; i++) {
+					
 					EasyEvent.EasyButtons easyButton = pageInfo.easyButtons [i];
+					SerializedProperty buttonProp = buttonsProp.GetArrayElementAtIndex (i);
 					DrawGUIProperty (buttonsProp.GetArrayElementAtIndex (i), "text", "", 3);
-					DrawGUIProperty (buttonsProp.GetArrayElementAtIndex (i), "eventType", "", 3);
+					DrawGUIProperty (buttonsProp.GetArrayElementAtIndex (i), "eventType", "", 1);
 
 					switch (easyButton.eventType) {
 					//GoToPage (from within or outside!)
 					case EasyEventType.dialouge:
-						//Call draw dialouge method here to select the dialouge!
+						DrawJustDialouge (easyButton.dialougeMethod);
 						break;
 					case EasyEventType.unityEvent:
 						DrawGUIProperty (buttonsProp.GetArrayElementAtIndex (i), "anEvent", "", 3);
 						break;
+					case EasyEventType.easyEvent:
+						DrawEasyEventMethod (buttonProp.FindPropertyRelative ("easyEventMethod"));
+						break;
 					}
 
 
 				}
-
 
 				NewCol (6);
-				/*
-				NewCol (pageProp.FindPropertyRelative ("easyButtons").arraySize + 3);
-
-				for (int i = 0; i < pageProp.FindPropertyRelative ("easyButtons").arraySize; i++) {
-					if (pageProp.FindPropertyRelative ("easyButtons").GetArrayElementAtIndex (i).isExpanded) {
-						NewCol (6);
-					}
-				}
-				*/
 
 			}
 
 			#endregion
-
-			if (pageInfo.hasButtons) {
-
-
-
-			}
 
 			NewCol (1);
 
-
-
-
 			#endregion
 
-
-
 		}
-
-
-
-
-		#endregion
 
 	
 	}
 
+	public void DrawEasyEventMethod (SerializedProperty easyEventMethodProp)
+	{
+		DrawGUIProperty (easyEventMethodProp, "easyEvent", "Event: ", 3);
+		DrawGUIProperty (easyEventMethodProp, "visibility", "Visibility: ", 3);
+	}
 
 	public override void OnInspectorGUI ()
 	{
@@ -420,6 +444,7 @@ public class EasyEventDrawer : Editor
 			SerializedProperty instanProp = element.FindPropertyRelative ("instantiateMethod");
 			SerializedProperty animationProp = element.FindPropertyRelative ("animationMethod");
 			SerializedProperty dialougeProp = element.FindPropertyRelative ("dialougeMethod");
+			SerializedProperty easyEventMethodProp = element.FindPropertyRelative ("easyEventMethod");
 
 			switch (eventInfo.eventType) {
 
@@ -491,15 +516,7 @@ public class EasyEventDrawer : Editor
 				break;
 
 			case EasyEventType.easyEvent:
-
-				SerializedProperty easyEventMethodProp = element.FindPropertyRelative ("easyEventMethod");
-				//Draw GUI for each property?
-				DrawGUIProperty (easyEventMethodProp, "easyEvent", "Event: ", 3);
-				DrawGUIProperty (easyEventMethodProp, "visibility", "Visibility: ", 3);
-
-
-				//On Off
-
+				DrawEasyEventMethod (easyEventMethodProp);
 				break;
 
 			}
@@ -693,14 +710,18 @@ public class EasyEventDrawer : Editor
 		eventRect.y = curRect.y;
 		EditorGUI.DrawRect (eventRect, mainColor);
 		bool showState = false;
-
+		bool isButtons = false;
 		if (pageEventPropName == "eventEndList") {
 			showState = eventInfo.pageList [eventInfo.pageIndex].showEnd = EditorGUI.Foldout (eventRect, eventInfo.pageList [eventInfo.pageIndex].showEnd, "OnEnd();", true);
 			//showState = eventInfo.pageList [eventInfo.pageIndex].showEnd;
 		}
 		if (pageEventPropName == "eventStartList") {
 			showState = eventInfo.pageList [eventInfo.pageIndex].showStart = EditorGUI.Foldout (eventRect, eventInfo.pageList [eventInfo.pageIndex].showStart, "OnStart();", true);
-	
+		}
+
+		if (pageEventPropName == "eventButtonList") {
+			isButtons = true;
+			showState = eventInfo.pageList [eventInfo.pageIndex].showButtons = EditorGUI.Foldout (eventRect, eventInfo.pageList [eventInfo.pageIndex].showButtons, "Response Buttons", true);
 		}
 
 		NewCol (1);
@@ -714,6 +735,7 @@ public class EasyEventDrawer : Editor
 
 			SerializedProperty pageEventsProp = pageProp.FindPropertyRelative (pageEventPropName);
 
+
 			Rect lastRect = curRect;
 			curRect.width = width * 3;
 			//curRect.height = EditorGUIUtility.singleLineHeight * 1.25F;
@@ -726,17 +748,26 @@ public class EasyEventDrawer : Editor
 			for (int i = 0; i < pageEvents.Count; i++) {
 				float bgHeight = 1; 
 
-				switch (pageEvents [i].pageEventType) {
-				case PageEventType.emoji:
+				switch (pageEvents [i].eventType) {
+				case EasyEventType.emoji:
 					bgHeight = 5;
 					break;
-				case PageEventType.move:
+				case EasyEventType.move:
 					bgHeight = 3;
 					break;
 
-				case PageEventType.unityEvent:
+				case EasyEventType.unityEvent:
 					bgHeight = 5;
 					break;
+
+				case EasyEventType.dialouge:
+					bgHeight = 2;
+					break;
+
+				case EasyEventType.easyEvent:
+					bgHeight = 3;
+					break;
+
 				}
 
 				if (!pageEvents [i].isShow)
@@ -758,10 +789,6 @@ public class EasyEventDrawer : Editor
 
 			}
 
-			//Get size
-
-
-
 			DrawBackground (3, eventBoxHeight, Color.white);
 
 			//GUI.Box (curRect, "Events");
@@ -769,10 +796,6 @@ public class EasyEventDrawer : Editor
 			curRect = lastRect;
 
 			#endregion
-
-			//NewCol (2);
-
-
 
 			for (int i = 0; i < pageEvents.Count; i++) {
 
@@ -782,10 +805,11 @@ public class EasyEventDrawer : Editor
 				SerializedProperty emojiProp = eventProp.FindPropertyRelative ("emoji");
 				SerializedProperty moveProp = eventProp.FindPropertyRelative ("moveMethod");
 				SerializedProperty unityEventProp = eventProp.FindPropertyRelative ("unityEventMethod");
+				SerializedProperty anEventProp = eventProp.FindPropertyRelative ("anEvent");
+				string title = pageEvents [i].eventType.ToString ();
+
+
 				//Display
-
-				//DrawBackground (3, boxSizes [i], Color.white);
-
 				DrawBackground (3, 1, Color.white);
 				eventRect.y = curRect.y;
 				eventRect.height = EditorGUIUtility.singleLineHeight * 0.9F;
@@ -796,13 +820,24 @@ public class EasyEventDrawer : Editor
 
 				EditorGUI.DrawRect (eventRect, subColor);
 
+				if (isButtons) {
+					title = pageEvents [i].buttonText;
+				}
+
+				//#BUTTONS
+
 				//here;
-				pageEvents [i].isShow = EditorGUI.Foldout (eventRect, pageEvents [i].isShow, pageEvents [i].pageEventType.ToString (), true);
+				pageEvents [i].isShow = EditorGUI.Foldout (eventRect, pageEvents [i].isShow, title, true);
 
 				if (pageEvents [i].isShow) {
 
+					if (isButtons) {
+						NewCol (1);
+						DrawGUIProperty (eventProp, "buttonText", "", 3);
+					}
+
 					NewCol ();
-					DrawGUIProperty (eventProp, "pageEventType", "", 1);
+					DrawGUIProperty (eventProp, "eventType", "", 1);
 
 
 					curRect.width = 20;
@@ -843,30 +878,40 @@ public class EasyEventDrawer : Editor
 
 					NewCol ();
 
-
+					curRect.width = width;
 
 					#region Display Specific Events
 
-					switch (pageEvents [i].pageEventType) {
+					switch (pageEvents [i].eventType) {
 
 
-					case PageEventType.move:
+					case EasyEventType.move:
 						EasyEvent.MoveMethod moveMethod = pageEvents [i].moveMethod;
-						if (pageEvents [i].pageEventType == PageEventType.move)
-							DrawMoveMethod (moveProp, moveMethod);
+						DrawMoveMethod (moveProp, moveMethod);
 						break;
 
-					case PageEventType.emoji:
+					case EasyEventType.emoji:
 						DrawGUIProperty (emojiProp, "playTiming", "Emoji Timing", 3);
 						DrawGUIProperty (emojiProp, "sprite", "Sprite", 3);
 						DrawGUIProperty (emojiProp, "instantiateTarget", "Prefab", 3);
 						DrawGUIProperty (emojiProp, "target", "Target", 3);
 						break;
 
-					case PageEventType.unityEvent:
-						DrawGUIProperty (unityEventProp, "anEvent", "", 3);
+					case EasyEventType.unityEvent:
+
+						DrawGUIProperty (eventProp, "anEvent", "", 3);
+						//DrawGUIProperty (unityEventProp, "anEvent", "", 3);
 						NewCol (4);
 						break;
+
+					case EasyEventType.dialouge:
+						DrawJustDialouge (pageEvents [i].dialougeMethod);
+						break;
+
+					case EasyEventType.easyEvent:
+						DrawEasyEventMethod (eventProp.FindPropertyRelative ("easyEventMethod"));
+						break;
+
 					}
 
 					#endregion
@@ -888,12 +933,8 @@ public class EasyEventDrawer : Editor
 
 				#endregion
 
-
 			}
 
-
-			//curRect.x = rect.width + curRect.width - 5;
-			//Button to add
 			curRect.width = 20;
 			curRect.x = rect.width + curRect.width - 5;
 			DrawBackground (new Rect (curRect.x - curRect.width, curRect.y, curRect.width * 2, EditorGUIUtility.singleLineHeight), Color.white);

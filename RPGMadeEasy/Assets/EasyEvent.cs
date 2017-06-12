@@ -293,9 +293,10 @@ public class EasyEvent : EventBase
 		public bool hasButtons = false;
 		public bool showEnd = false;
 		public bool showStart = false;
+		public bool showButtons = false;
 		public List<PageEvent> eventEndList = new List<PageEvent> ();
 		public List<PageEvent> eventStartList = new List<PageEvent> ();
-
+		public List<PageEvent> eventButtonList = new List<PageEvent> ();
 		public List<EasyButtons> easyButtons = new List<EasyButtons> ();
 
 	}
@@ -306,6 +307,8 @@ public class EasyEvent : EventBase
 		public string text = "default response";
 		public UnityEvent anEvent;
 		public EasyEventType eventType;
+		public DialougeMethod dialougeMethod;
+		public EasyEventMethod easyEventMethod;
 	}
 
 	[System.Serializable]
@@ -320,10 +323,16 @@ public class EasyEvent : EventBase
 		public Emoji emoji;
 		public MoveMethod moveMethod;
 		public UnityEventMethod unityEventMethod;
-		public PageEventType pageEventType = new PageEventType ();
 		public bool isShow;
 		public WaitType waitType;
 		public float waitTime = 0;
+
+		public EasyEventType eventType;
+		public UnityEvent anEvent;
+		public DialougeMethod dialougeMethod;
+		public EasyEventMethod easyEventMethod;
+		public string buttonText = "Default Response";
+
 	}
 
 	[System.Serializable]
@@ -364,7 +373,9 @@ public enum PageEventType
 	emoji,
 	animation,
 	setActive,
-	unityEvent
+	unityEvent,
+	easyEvent,
+	dialouge
 }
 
 public enum EasyEventType
