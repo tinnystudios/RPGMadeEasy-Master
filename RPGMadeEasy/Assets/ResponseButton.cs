@@ -24,6 +24,7 @@ public class ResponseButton : MonoBehaviour
 	public void ButtonPressed ()
 	{
 		ChatManager.singletonInstance.ButtonPressed (pageEvent);
+		EventSystem.current.SetSelectedGameObject (null);
 		//myEvent.Invoke ();
 
 		return;

@@ -81,11 +81,7 @@ public class EasyEvent : EventBase
 
 				//Make sure there is a global class!
 				Dictionary<string,  StoryInfo.Conversation> conDict = StoryGetters.GetConversationDict ();
-				//null check
 				StoryInfo.Conversation conversation = conDict [dialougeMethod.conversationGUID];
-				//ChatManager.singletonInstance.OpenConversation (conversation.linkInfo.dialougeGUID, conversation.linkInfo.conversationIndex, 0);
-
-
 				ChatManager.singletonInstance.StartDialouge (dialougeMethod.conversationGUID, myEvent.pageList);
 
 				while (ChatManager.singletonInstance.isChatActive) {
@@ -158,7 +154,6 @@ public class EasyEvent : EventBase
 				if (easyEventMethod.visibility == VisibilityType.off) {
 					EndEvent ();
 				}
-
 				break;
 
 			}

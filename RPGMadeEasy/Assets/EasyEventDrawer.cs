@@ -18,7 +18,7 @@ public class EasyEventDrawer : Editor
 	public float width;
 	public float startX;
 
-	public int eCol;
+	public float eCol;
 	public int eRow;
 
 	public Color mainColor = new Color (0.8F, 0.8F, 0.8F);
@@ -269,15 +269,35 @@ public class EasyEventDrawer : Editor
 				//Display page
 				StoryInfo.Page page = conversation.pages [eventInfo.pageIndex];
 				curRect.width = rect.width;
-				curRect.height = EditorGUIUtility.singleLineHeight * 2;
-				page.text = GUI.TextField (curRect, page.text);
-
-				NewCol ();
-
-				NewCol ();
+				curRect.height = EditorGUIUtility.singleLineHeight * 4;
 
 
+				//Draw it out
+				float texture2DSize = 70;
+				Rect imageRect = curRect;
+				imageRect.width = texture2DSize;
+				imageRect.height = texture2DSize;
+				page.outputCharacterImage.image = (Texture2D)EditorGUI.ObjectField (imageRect, page.outputCharacterImage.image, typeof(Texture2D), true);
 
+				//Draw text underneath image
+
+				curRect.x += texture2DSize;
+				curRect.width -= texture2DSize;
+
+				GUI.skin.textField.wordWrap = true;
+				GUI.skin.textArea.wordWrap = true;
+
+				page.text = GUI.TextArea (curRect, page.text);
+
+				Rect speakerRect = curRect;
+				speakerRect.y -= EditorGUIUtility.singleLineHeight;
+				speakerRect.width = width;
+				speakerRect.height = EditorGUIUtility.singleLineHeight;
+				page.speakerName = GUI.TextField (speakerRect, page.speakerName);
+
+
+
+				NewCol (4);
 
 				curRect.width = 20;
 				curRect.height = 15;
@@ -660,6 +680,12 @@ public class EasyEventDrawer : Editor
 		curRect.x = startX;
 		eCol += i;
 		eRow = 0;
+	}
+
+	public void IncreaseCol (float f)
+	{
+		curRect.y += f * EditorGUIUtility.singleLineHeight;
+		eCol += f;
 	}
 
 	public void NewRow ()

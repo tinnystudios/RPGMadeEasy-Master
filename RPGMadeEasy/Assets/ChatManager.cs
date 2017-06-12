@@ -9,6 +9,7 @@ public class ChatManager : EventBase
 	public static ChatManager _instance;
 
 	public GameObject displayChat;
+	public Image characterImage;
 	public Text textChat;
 	public Text textSpeaker;
 	public Transform buttonGroup;
@@ -70,6 +71,16 @@ public class ChatManager : EventBase
 			StoryInfo.Page page = conversation.pages [pIndex];
 			EasyEvent.PageInfo pageEvent = pageEvents [pIndex];
 
+			textSpeaker.text = page.speakerName;
+
+			if (page.outputCharacterImage.image != null) {
+				Texture2D texture = page.outputCharacterImage.image;
+				Rect rec = new Rect (0, 0, texture.width, texture.height);
+				Sprite newSprite = Sprite.Create (texture, rec, new Vector2 (0, 0));
+				characterImage.sprite = newSprite;
+			}
+
+
 			//Check for the type of 'action'
 
 			//if (myEmoji.playTiming == PlayTiming.onStart)
@@ -127,6 +138,9 @@ public class ChatManager : EventBase
 			//Rename pageevent to pageinfo PLEASE TIN
 			//Has buttons
 			if (pageEvent.eventButtonList.Count > 0) {
+
+				canSkip = false;
+
 				for (int i = 0; i < pageEvent.eventButtonList.Count; i++) {
 
 					buttons [i].gameObject.SetActive (true);
@@ -139,14 +153,6 @@ public class ChatManager : EventBase
 			}
 
 			#endregion
-
-			/* (this uses the WindowEditor ones)
-			//If there are buttons, you cannot skip
-			if (page.buttonInfos.Count > 0) {
-				canSkip = false;
-			}
-			*/
-
 
 			#endregion
 
@@ -177,6 +183,8 @@ public class ChatManager : EventBase
 	public void ButtonPressed (EasyEvent.PageEvent pageEvent)
 	{
 		StartCoroutine (_PlayOneEvent (pageEvent));
+		//Close dialouge
+		CloseConversation ();
 	}
 
 	public void PlayEvent (List<EasyEvent.PageEvent> pageEvents)
@@ -215,6 +223,27 @@ public class ChatManager : EventBase
 		case EasyEventType.unityEvent:
 			//buttons [i].myEvent = pageEvent.eventButtonList [i].anEvent;
 			pageEvent.anEvent.Invoke ();
+			break;
+		
+		case EasyEventType.dialouge:
+
+			//Make sure there is a global class!
+			Dictionary<string,  StoryInfo.Conversation> conDict = StoryGetters.GetConversationDict ();
+			StoryInfo.Conversation conversation = conDict [pageEvent.dialougeMethod.conversationGUID];
+			//ChatManager.singletonInstance.StartDialouge (pageEvent.dialougeMethod.conversationGUID, conversation.pages);
+
+			break;
+
+		case EasyEventType.easyEvent:
+
+			if (pageEvent.easyEventMethod.visibility == VisibilityType.on) {
+				pageEvent.easyEventMethod.easyEvent.StartEvent ();
+				//StartEvent ();
+			}
+			if (pageEvent.easyEventMethod.visibility == VisibilityType.off) {
+				pageEvent.easyEventMethod.easyEvent.EndEvent ();
+			}
+
 			break;
 
 		}
