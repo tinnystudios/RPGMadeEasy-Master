@@ -9,6 +9,7 @@ public class ChatManager : EventBase
 	public static ChatManager _instance;
 
 	public GameObject displayChat;
+	public Image characterImage;
 	public Text textChat;
 	public Text textSpeaker;
 	public Transform buttonGroup;
@@ -70,13 +71,24 @@ public class ChatManager : EventBase
 			StoryInfo.Page page = conversation.pages [pIndex];
 			EasyEvent.PageInfo pageEvent = pageEvents [pIndex];
 
+			textSpeaker.text = page.speakerName;
+
+			if (page.outputCharacterImage.image != null) {
+				Texture2D texture = page.outputCharacterImage.image;
+				Rect rec = new Rect (0, 0, texture.width, texture.height);
+				Sprite newSprite = Sprite.Create (texture, rec, new Vector2 (0, 0));
+				characterImage.sprite = newSprite;
+			}
+
+
 			//Check for the type of 'action'
 
 			//if (myEmoji.playTiming == PlayTiming.onStart)
 			//yield return StartCoroutine (_PlayEmoji (myEmoji));
 
 			#region Events
-			PlayEvent (pageEvent.eventStartList);
+			//PlayEvent (pageEvent.eventStartList);
+			yield return StartCoroutine (_PlayEvent (pageEvent.eventStartList));
 			#endregion
 
 			#region Reset values logic
@@ -84,8 +96,6 @@ public class ChatManager : EventBase
 			textChat.text = "";
 			HideButtons ();
 			#endregion
-
-
 
 			#region ### Output Text Logic ### 
 
@@ -123,10 +133,27 @@ public class ChatManager : EventBase
 			#region ### Closing Dialouge Logic ###
 			bool canSkip = true;
 
-			//If there are buttons, you cannot skip
-			if (page.buttonInfos.Count > 0) {
+			//Buttons
+			#region Buttons
+			//Rename pageevent to pageinfo PLEASE TIN
+			//Has buttons
+			if (pageEvent.eventButtonList.Count > 0) {
+
 				canSkip = false;
+
+				for (int i = 0; i < pageEvent.eventButtonList.Count; i++) {
+
+					buttons [i].gameObject.SetActive (true);
+					buttons [i].text.text = pageEvent.eventButtonList [i].buttonText;
+					buttons [i].pageEvent = pageEvent.eventButtonList [i];
+
+
+				}
+
 			}
+
+			#endregion
+
 			#endregion
 
 			#region ### Space to close dialouge ###
@@ -141,30 +168,23 @@ public class ChatManager : EventBase
 			#region ### Emoji ###
 
 			//Check For events
-			PlayEvent (pageEvent.eventEndList);
-
-
-
-
-
-
-			/*
-			//Maybe I should have a 'boolean' for it.
-			if (pageEvents [pIndex].emoji.sprite != null) {
-				//Spawn emoji
-				EasyEvent.Emoji myEmoji = pageEvents [pIndex].emoji;
-				GameObject emojiGO = Instantiate (myEmoji.instantiateTarget, myEmoji.target.transform.position + myEmoji.offset, Quaternion.identity) as GameObject;
-				emojiGO.GetComponent<EmojiInfo> ().SetSprite (myEmoji.sprite);
-			}
-			*/
+			yield return StartCoroutine (_PlayEvent (pageEvent.eventEndList));
 
 			#endregion
+		
 			pIndex++;
 			yield return null;
 		}
 
 		CloseConversation ();
 		isChatActive = false;
+	}
+
+	public void ButtonPressed (EasyEvent.PageEvent pageEvent)
+	{
+		StartCoroutine (_PlayOneEvent (pageEvent));
+		//Close dialouge
+		CloseConversation ();
 	}
 
 	public void PlayEvent (List<EasyEvent.PageEvent> pageEvents)
@@ -176,30 +196,59 @@ public class ChatManager : EventBase
 	{
 		for (int i = 0; i < pageEvents.Count; i++) {
 
-			EasyEvent.PageEvent myEvent = pageEvents [i];
-
-			switch (pageEvents [i].pageEventType) {
-
-			case PageEventType.move:
-
-				Vector3 endPos = myEvent.moveMethod.target.position + myEvent.moveMethod.moveDist;
-
-				if (myEvent.waitType == WaitType.waitForEvent)
-					yield return StartCoroutine (_Move (myEvent.moveMethod.target, endPos, myEvent.moveMethod.curve));
-				else
-					StartCoroutine (_Move (myEvent.moveMethod.target, endPos, myEvent.moveMethod.curve));
-
-				break;
-
-			case PageEventType.emoji:
-				StartCoroutine (_PlayEmoji (pageEvents [i].emoji));
-				break;
-
-			}
-
-			yield return new WaitForSeconds (pageEvents [i].waitTime);
+			yield return StartCoroutine (_PlayOneEvent (pageEvents [i]));
 
 		}
+	}
+
+	IEnumerator _PlayOneEvent (EasyEvent.PageEvent pageEvent)
+	{
+		switch (pageEvent.eventType) {
+
+		case EasyEventType.move:
+
+			Vector3 endPos = pageEvent.moveMethod.target.position + pageEvent.moveMethod.moveDist;
+
+			if (pageEvent.waitType == WaitType.waitForEvent)
+				yield return StartCoroutine (_Move (pageEvent.moveMethod.target, endPos, pageEvent.moveMethod.curve));
+			else
+				StartCoroutine (_Move (pageEvent.moveMethod.target, endPos, pageEvent.moveMethod.curve));
+
+			break;
+
+		case EasyEventType.emoji:
+			StartCoroutine (_PlayEmoji (pageEvent.emoji));
+			break;
+
+		case EasyEventType.unityEvent:
+			//buttons [i].myEvent = pageEvent.eventButtonList [i].anEvent;
+			pageEvent.anEvent.Invoke ();
+			break;
+		
+		case EasyEventType.dialouge:
+
+			//Make sure there is a global class!
+			Dictionary<string,  StoryInfo.Conversation> conDict = StoryGetters.GetConversationDict ();
+			StoryInfo.Conversation conversation = conDict [pageEvent.dialougeMethod.conversationGUID];
+			//ChatManager.singletonInstance.StartDialouge (pageEvent.dialougeMethod.conversationGUID, conversation.pages);
+
+			break;
+
+		case EasyEventType.easyEvent:
+
+			if (pageEvent.easyEventMethod.visibility == VisibilityType.on) {
+				pageEvent.easyEventMethod.easyEvent.StartEvent ();
+				//StartEvent ();
+			}
+			if (pageEvent.easyEventMethod.visibility == VisibilityType.off) {
+				pageEvent.easyEventMethod.easyEvent.EndEvent ();
+			}
+
+			break;
+
+		}
+
+		yield return new WaitForSeconds (pageEvent.waitTime);
 	}
 
 	public void PlayEmoji (EasyEvent.Emoji myEmoji)
