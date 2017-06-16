@@ -10,7 +10,6 @@ public class EasyEvent : EventBase
 	public GameObject emojiPrefab;
 	public TriggerType triggerType;
 
-
 	void Start ()
 	{
 		if (triggerType == TriggerType.onAwake)
