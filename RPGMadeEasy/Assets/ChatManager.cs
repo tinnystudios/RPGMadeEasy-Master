@@ -54,7 +54,6 @@ public class ChatManager : EventBase
 
 	public void StartDialouge (string conGUID, List<EasyEvent.PageInfo> pageEvents)
 	{
-	
 		//Check page event count;
 		StartCoroutine (_StartDialouge (conGUID, pageEvents));
 	}
@@ -63,7 +62,6 @@ public class ChatManager : EventBase
 	{
 		isChatActive = true;
 		int pIndex = 0;
-
 
 		StoryInfo.Conversation conversation = conDict [conGUID];
 
@@ -177,6 +175,7 @@ public class ChatManager : EventBase
 		}
 
 		CloseConversation ();
+
 		isChatActive = false;
 	}
 

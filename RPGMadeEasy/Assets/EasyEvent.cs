@@ -77,14 +77,18 @@ public class EasyEvent : EventBase
 				break;
 
 			case EasyEventType.dialouge:
+				yield return new WaitForFixedUpdate ();
 
 				//Make sure there is a global class!
 				Dictionary<string,  StoryInfo.Conversation> conDict = StoryGetters.GetConversationDict ();
 				StoryInfo.Conversation conversation = conDict [dialougeMethod.conversationGUID];
+		
 				ChatManager.singletonInstance.StartDialouge (dialougeMethod.conversationGUID, myEvent.pageList);
-
-				while (ChatManager.singletonInstance.isChatActive) {
-					yield return null;
+		
+				if (myEvent.waitType == WaitType.waitForEvent) {
+					while (ChatManager.singletonInstance.isChatActive) {
+						yield return null;
+					}
 				}
 
 				//Next thing to do is create a wait for event!
@@ -107,7 +111,6 @@ public class EasyEvent : EventBase
 
 			case EasyEventType.animation:
 				//myEvent.animator.SetBool
-
 
 				if (animationMethod.animParamType == AnimParamType.setInt) {
 					animationMethod.animator.SetInteger (animationMethod.paramName, animationMethod.intField);
@@ -153,6 +156,11 @@ public class EasyEvent : EventBase
 				if (easyEventMethod.visibility == VisibilityType.off) {
 					EndEvent ();
 				}
+
+
+				//You can do a 'wait till this easy event' has finished! 
+				//So myEvent.EasyEvent.InProgress
+
 				break;
 
 			}
